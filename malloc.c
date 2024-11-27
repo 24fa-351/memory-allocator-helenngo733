@@ -1,10 +1,10 @@
 #include "malloc.h"
 
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #define ALIGNMENT 8
 #define INITIAL_HEAP_SIZE (1024 * 1024)
@@ -13,7 +13,7 @@
 
 // A block of memory on the heap
 typedef struct Block {
-    size_t size; //excluding the metadata
+    size_t size;  // excluding the metadata
     char* ptr_start;
 } Block;
 
@@ -86,7 +86,7 @@ static void* get_heap_blocks(ssize_t size) {
 
 void* mod_malloc(size_t requested_size) {
     pthread_mutex_lock(&lock);
-    
+
     requested_size = ((requested_size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1)) + META_SIZE;
 
     // Find the smallest block that can accommodate the requested size
@@ -101,10 +101,10 @@ void* mod_malloc(size_t requested_size) {
             }
 
             block->size = requested_size;
-            
+
             pthread_mutex_unlock(&lock);
-            
-            memset((void*)block->ptr_start, 0, requested_size); //memory zeroed 
+
+            memset((void*)block->ptr_start, 0, requested_size);  // memory zeroed
             return (void*)block->ptr_start;
         }
         block = remove_smallest_from_heap(&free_heap);
@@ -113,7 +113,7 @@ void* mod_malloc(size_t requested_size) {
     // If no suitable block is found, get more memory
     if (!heap_start) {
         pthread_mutex_unlock(&lock);
-        
+
         heap_start = get_heap_blocks(INITIAL_HEAP_SIZE);
         if (!heap_start) return NULL;
         remaining_heap_space = INITIAL_HEAP_SIZE;
@@ -140,11 +140,11 @@ void* mod_malloc(size_t requested_size) {
 void mod_free(void* ptr) {
     if (!ptr) return;
     pthread_mutex_lock(&lock);
-    
+
     Block* block = (Block*)((char*)ptr - META_SIZE);
     block->ptr_start = (char*)ptr;
     insert_into_heap(&free_heap, block);
-    
+
     pthread_mutex_unlock(&lock);
 }
 
